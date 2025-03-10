@@ -5,8 +5,8 @@ public class CheckersMove : MonoBehaviour
 {
     private GameObject selectedPawn = null;
     private Vector3 originalPosition;
-    private float liftHeight = 0.2f; // Высота поднятия при выборе
-    private float cellSize = 0.21f; // Размер клетки
+    private float liftHeight = 0.2f;
+    private float cellSize = 0.21f;
     private float diagonalStep;
 
     private Vector3 whiteGraveyard = new Vector3(-0.5f, 0, -1f);
@@ -14,10 +14,10 @@ public class CheckersMove : MonoBehaviour
 
     private bool isWhiteTurn = true;
 
-    public GameObject crownWhite; // Префаб белой дамки
-    public GameObject crownBlack; // Префаб черной дамки
+    public GameObject crownWhite;
+    public GameObject crownBlack;
 
-    public GameObject highlightBluePrefab;  // для простого хода
+    public GameObject highlightBluePrefab;
     public GameObject highlightRedPrefab;
     private List<GameObject> activeHighlights = new List<GameObject>();
 
@@ -26,13 +26,13 @@ public class CheckersMove : MonoBehaviour
     private AudioSource audioSource;
     void Start()
     {
-        diagonalStep = cellSize * Mathf.Sqrt(2); // Вычисляем длину диагонали
+        diagonalStep = cellSize * Mathf.Sqrt(2);
         audioSource = gameObject.AddComponent<AudioSource>();
     }
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0)) // ЛКМ
+        if (Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
@@ -68,28 +68,27 @@ public class CheckersMove : MonoBehaviour
     {
         if (selectedPawn != null)
         {
-            selectedPawn.transform.position = originalPosition; // Вернуть, если уже выбрана другая
+            selectedPawn.transform.position = originalPosition;
         }
         selectedPawn = pawn;
-        originalPosition = selectedPawn.transform.position; // Запоминаем исходное положение
-        selectedPawn.transform.position += Vector3.up * liftHeight; // Поднять шашку
+        originalPosition = selectedPawn.transform.position;
+        selectedPawn.transform.position += Vector3.up * liftHeight;
     }
 
     void ShowHighlightsForSelectedPiece() // подсвет
     {
         if (selectedPawn == null) return;
 
-        if (selectedPawn.CompareTag("WhitePawn") || selectedPawn.CompareTag("BlackPawn")) // Если это обычная шашка
+        if (selectedPawn.CompareTag("WhitePawn") || selectedPawn.CompareTag("BlackPawn"))
         {
             Vector3 currentPos = selectedPawn.transform.position;
             Vector3 moveDir1, moveDir2;
             if (selectedPawn.CompareTag("WhitePawn"))
             {
-                // Белые ходят "вперёд" – допустим, вперед = уменьшение z
                 moveDir1 = new Vector3(-cellSize, 0, -cellSize);
                 moveDir2 = new Vector3(cellSize, 0, -cellSize);
             }
-            else // BlackPawn
+            else
             {
                 moveDir1 = new Vector3(-cellSize, 0, cellSize);
                 moveDir2 = new Vector3(cellSize, 0, cellSize);
@@ -100,7 +99,7 @@ public class CheckersMove : MonoBehaviour
             CheckAndHighlightCaptureMove(currentPos, moveDir1);
             CheckAndHighlightCaptureMove(currentPos, moveDir2);
         }
-        else if (selectedPawn.CompareTag("WhiteCrown") || selectedPawn.CompareTag("BlackCrown"))// Если это дамка
+        else if (selectedPawn.CompareTag("WhiteCrown") || selectedPawn.CompareTag("BlackCrown"))
         {
             Vector3[] directions = new Vector3[4]
             {
@@ -121,13 +120,11 @@ public class CheckersMove : MonoBehaviour
         Vector3 pos = startPos;
         pos.y = 0;
         bool enemyEncountered = false;
-        bool captureValid = false; // Флаг: есть ли хотя бы одна свободная клетка для приземления после врага
 
         for (int i = 1; i <= maxSteps; i++)
         {
-            pos += direction; // переходим на следующую клетку
+            pos += direction;
 
-            // 1. Проверяем, находится ли клетка на доске (наличие объекта с тегом "MoveSpot")
             Collider[] boardColliders = Physics.OverlapSphere(pos, 0.1f);
             bool onBoard = false;
             foreach (Collider col in boardColliders)
@@ -144,7 +141,6 @@ public class CheckersMove : MonoBehaviour
                 break;
             }
 
-            // 2. Получаем объекты в клетке, исключая объекты MoveSpot.
             Collider[] colliders = Physics.OverlapSphere(pos, 0.1f);
             List<Collider> pieces = new List<Collider>();
             foreach (Collider col in colliders)
@@ -153,21 +149,15 @@ public class CheckersMove : MonoBehaviour
                     pieces.Add(col);
             }
 
-            // 3. Если клетка пуста (т.е. не содержит фигур)
             if (pieces.Count == 0)
             {
-                // Если до этого уже встречался враг – это вариант для приземления после захвата.
-                // Если враг не встречался – обычный ход.
                 Vector3 highlightPos = new Vector3(pos.x, 0f, pos.z);
                 Quaternion highlightRot = Quaternion.Euler(90, 0, 0);
                 GameObject highlight = Instantiate(highlightBluePrefab, highlightPos, highlightRot);
                 activeHighlights.Add(highlight);
-                if (enemyEncountered)
-                    captureValid = true;
             }
             else
             {
-                // В клетке есть хотя бы одна фигура – определяем, является ли она врагом или союзником.
                 bool foundEnemy = false;
                 bool foundAlly = false;
                 foreach (Collider col in pieces)
@@ -190,16 +180,13 @@ public class CheckersMove : MonoBehaviour
 
                 if (foundAlly)
                 {
-                    // Если союзная фигура – путь заблокирован, прекращаем поиск.
                     break;
                 }
                 if (foundEnemy)
                 {
                     if (!enemyEncountered)
                     {
-                        // При первом обнаружении врага проверяем, есть ли свободная клетка сразу за ним.
                         Vector3 nextPos = pos + direction;
-                        // Проверяем, что следующая клетка на доске.
                         Collider[] nextBoard = Physics.OverlapSphere(nextPos, 0.1f);
                         bool nextOnBoard = false;
                         foreach (Collider col in nextBoard)
@@ -212,7 +199,6 @@ public class CheckersMove : MonoBehaviour
                         }
                         if (!nextOnBoard)
                         {
-                            // Нет клетки для приземления – отменяем capture-опцию.
                             break;
                         }
 
@@ -228,38 +214,25 @@ public class CheckersMove : MonoBehaviour
                         }
                         if (!nextFree)
                         {
-                            // Следующая клетка занята – перепрыгивание невозможно.
                             break;
                         }
 
-                        // Если свободная клетка найдена, подсвечиваем текущую клетку (с врагом) красным.
                         enemyEncountered = true;
                         Vector3 enemyHighlightPos = new Vector3(pos.x, 0f, pos.z);
                         Quaternion highlightRot = Quaternion.Euler(90, 0, 0);
                         GameObject enemyHighlight = Instantiate(highlightRedPrefab, enemyHighlightPos, highlightRot);
                         activeHighlights.Add(enemyHighlight);
 
-                        // Также подсвечиваем следующую клетку (вариант приземления) синим.
                         Vector3 landingHighlightPos = new Vector3(nextPos.x, 0f, nextPos.z);
                         GameObject landingHighlight = Instantiate(highlightBluePrefab, landingHighlightPos, highlightRot);
                         activeHighlights.Add(landingHighlight);
-                        captureValid = true;
                     }
                     else
                     {
-                        // Если враг уже встречался и сейчас обнаруживается еще фигура – дальнейший ход невозможен.
                         break;
                     }
                 }
             }
-        }
-
-        // Если после обнаружения врага не нашлось ни одной свободной клетки для приземления,
-        // можно при необходимости убрать подсвет врага (это дополнительная логика).
-        if (enemyEncountered && !captureValid)
-        {
-            // Например, очистить последние добавленные подсветы, относящиеся к capture.
-            // Здесь можно реализовать логику очистки или не делать ничего.
         }
     }
     void CheckAndHighlightNormalMove(Vector3 startPos, Vector3 offset)
@@ -267,7 +240,6 @@ public class CheckersMove : MonoBehaviour
         Vector3 pos = startPos + offset;
         pos.y = 0;
 
-        // Проверяем, что клетка находится в пределах доски, используя наличие MoveSpot
         Collider[] moveSpotColliders = Physics.OverlapSphere(pos, 0.1f);
         bool hasMoveSpot = false;
         foreach (Collider col in moveSpotColliders)
@@ -279,9 +251,8 @@ public class CheckersMove : MonoBehaviour
             }
         }
         if (!hasMoveSpot)
-            return; // клетка вне доски
+            return;
 
-        // Проверяем, что клетка пуста (нет ни союзной, ни чужой фигуры)
         Collider[] colliders = Physics.OverlapSphere(pos, 0.1f);
         bool cellEmpty = true;
         foreach (Collider col in colliders)
@@ -303,13 +274,11 @@ public class CheckersMove : MonoBehaviour
     }
     void CheckAndHighlightCaptureMove(Vector3 startPos, Vector3 offset)
     {
-        // Определяем позицию врага и клетку приземления
         Vector3 enemyPos = startPos + offset;
         Vector3 landingPos = startPos + 2 * offset;
         enemyPos.y = 0;
         landingPos.y = 0;
 
-        // Проверяем, что клетка с врагом находится в пределах доски
         Collider[] moveSpotEnemy = Physics.OverlapSphere(enemyPos, 0.1f);
         bool enemyPosHasMoveSpot = false;
         foreach (Collider col in moveSpotEnemy)
@@ -321,9 +290,7 @@ public class CheckersMove : MonoBehaviour
             }
         }
         if (!enemyPosHasMoveSpot)
-            return; // клетка с противником вне доски
-
-        // Ищем вражескую фигуру на enemyPos
+            return;
         Collider[] collidersEnemy = Physics.OverlapSphere(enemyPos, 0.1f);
         GameObject enemyFound = null;
         foreach (Collider col in collidersEnemy)
@@ -346,9 +313,8 @@ public class CheckersMove : MonoBehaviour
             }
         }
         if (enemyFound == null)
-            return; // противник не найден
+            return;
 
-        // Проверяем, что клетка для приземления находится в пределах доски
         Collider[] moveSpotLanding = Physics.OverlapSphere(landingPos, 0.1f);
         bool landingHasMoveSpot = false;
         foreach (Collider col in moveSpotLanding)
@@ -360,9 +326,8 @@ public class CheckersMove : MonoBehaviour
             }
         }
         if (!landingHasMoveSpot)
-            return; // клетка для приземления вне доски
+            return;
 
-        // Проверяем, что клетка приземления пуста
         Collider[] collidersLanding = Physics.OverlapSphere(landingPos, 0.1f);
         bool landingEmpty = true;
         foreach (Collider col in collidersLanding)
@@ -376,13 +341,11 @@ public class CheckersMove : MonoBehaviour
         }
         if (landingEmpty)
         {
-            // Подсвечиваем найденного противника красным
             Vector3 enemyHighlightPos = new Vector3(enemyPos.x, 0f, enemyPos.z);
             Quaternion highlightRot = Quaternion.Euler(90, 0, 0);
             GameObject enemyHighlight = Instantiate(highlightRedPrefab, enemyHighlightPos, highlightRot);
             activeHighlights.Add(enemyHighlight);
 
-            // Подсвечиваем клетку приземления синим
             Vector3 landingHighlightPos = new Vector3(landingPos.x, 0f, landingPos.z);
             GameObject landingHighlight = Instantiate(highlightBluePrefab, landingHighlightPos, highlightRot);
             activeHighlights.Add(landingHighlight);
@@ -390,13 +353,11 @@ public class CheckersMove : MonoBehaviour
     }
     void TryMoveOrCapture(GameObject target)
     {
-        // Обычные шашки
         if (selectedPawn.CompareTag("WhitePawn") || selectedPawn.CompareTag("BlackPawn"))
         {
             Vector3 moveDirection = target.transform.position - selectedPawn.transform.position;
-            moveDirection.y = 0; // Игнорируем высоту
+            moveDirection.y = 0;
 
-            // Обычный ход – на одну диагональ
             if (Mathf.Abs(moveDirection.magnitude - diagonalStep) < 0.1f)
             {
                 if ((selectedPawn.CompareTag("WhitePawn") && moveDirection.z < 0) ||
@@ -408,7 +369,6 @@ public class CheckersMove : MonoBehaviour
                     ClearHighlights();
                 }
             }
-            // Прыжок через фигуру – расстояние 2 диагонали
             else if (Mathf.Abs(moveDirection.magnitude - (2 * diagonalStep)) < 0.1f)
             {
                 if (CanCaptureEnemy(moveDirection, out GameObject enemyPawn))
@@ -419,14 +379,12 @@ public class CheckersMove : MonoBehaviour
                 }
             }
         }
-        // Дамки (crown)
         else if (selectedPawn.CompareTag("WhiteCrown") || selectedPawn.CompareTag("BlackCrown"))
         {
             TryMoveOrCaptureKing(target);
         }
     }
 
-    // Логика хода для дамок: ход по диагонали на любое расстояние с возможностью удара
     void TryMoveOrCaptureKing(GameObject target)
     {
         GameObject king = selectedPawn;
@@ -437,11 +395,9 @@ public class CheckersMove : MonoBehaviour
 
         if (diff.magnitude < 0.1f)
             return;
-        // Проверяем, что движение строго по диагонали: |dx| должно быть примерно равно |dz|
         if (Mathf.Abs(Mathf.Abs(diff.x) - Mathf.Abs(diff.z)) > 0.1f)
-            return; // не диагональ
+            return;
 
-        // Определяем количество клеток (шагов) по диагонали
         int steps = Mathf.RoundToInt(Mathf.Abs(diff.x) / cellSize);
         float stepX = Mathf.Sign(diff.x);
         float stepZ = Mathf.Sign(diff.z);
@@ -450,7 +406,6 @@ public class CheckersMove : MonoBehaviour
         int enemyCount = 0;
         GameObject enemyCandidate = null;
         Vector3 currentPos = startPos;
-        // Проходим по всем промежуточным клеткам до цели
         for (int i = 1; i < steps; i++)
         {
             currentPos += stepDir;
@@ -467,14 +422,14 @@ public class CheckersMove : MonoBehaviour
                     if (col.CompareTag("BlackPawn") || col.CompareTag("BlackCrown"))
                         isEnemy = true;
                     else if (col.CompareTag("WhitePawn") || col.CompareTag("WhiteCrown"))
-                        return; // союзная фигура блокирует путь
+                        return;
                 }
                 else if (selectedPawn.CompareTag("BlackCrown"))
                 {
                     if (col.CompareTag("WhitePawn") || col.CompareTag("WhiteCrown"))
                         isEnemy = true;
                     else if (col.CompareTag("BlackPawn") || col.CompareTag("BlackCrown"))
-                        return; // союзная фигура блокирует путь
+                        return;
                 }
                 if (isEnemy)
                 {
@@ -483,10 +438,8 @@ public class CheckersMove : MonoBehaviour
                 }
             }
         }
-        // Если более одной вражеской фигуры – ход недопустим
         if (enemyCount > 1)
             return;             
-        // Если ровно одна – выполняем удар
         if (enemyCount == 1)
         {
             CaptureEnemy(enemyCandidate, target.transform.position);
@@ -494,7 +447,9 @@ public class CheckersMove : MonoBehaviour
             selectedPawn = king;
         }
         else
-        { PlaySound(defoultMove, 0.5f); }
+        { 
+            PlaySound(defoultMove, 0.5f);
+        }
 
         MovePawn(targetPos);
         ClearHighlights();
@@ -547,13 +502,13 @@ public class CheckersMove : MonoBehaviour
         {
             enemyPawn.transform.position = whiteGraveyard;
             enemyPawn.transform.rotation = Quaternion.Euler(0, 90, 90);
-            whiteGraveyard.z += 0.1f; // Смещаем следующую по Z
+            whiteGraveyard.z += 0.1f;
         }
         else if (enemyPawn.CompareTag("BlackPawn")|| enemyPawn.CompareTag("BlackCrown"))
         {
             enemyPawn.transform.position = blackGraveyard;
             enemyPawn.transform.rotation = Quaternion.Euler(0, 90, -90);
-            blackGraveyard.z -= 0.1f; // Смещаем следующую по Z
+            blackGraveyard.z -= 0.1f;
         }
         PlaySound(captureMove, 0.3f);
         MovePawn(newPosition);
@@ -563,7 +518,7 @@ public class CheckersMove : MonoBehaviour
 
     void EndTurn()
     {
-        isWhiteTurn = !isWhiteTurn; // Переключаем ход
+        isWhiteTurn = !isWhiteTurn;
     }
     void PromoteToCrown()
     {

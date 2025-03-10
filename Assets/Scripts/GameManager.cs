@@ -25,7 +25,6 @@ public class GameManager : MonoBehaviour
 
     private void CheckWinCondition()
     {
-        //Debug.Log("White " + whiteCheckers+": Black " + blackCheckers);
         if (whiteCheckers == 0)
         {
             PlayerPrefs.SetString("Winner", $"Congrats!\nBlack team win!");
