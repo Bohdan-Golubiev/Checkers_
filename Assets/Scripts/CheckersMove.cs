@@ -1,33 +1,41 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using static UnityEditor.PlayerSettings;
 
 public class CheckersMove : MonoBehaviour
 {
     private GameObject selectedPawn = null;
     private Vector3 originalPosition;
-    private float liftHeight = 0.2f;
-    private float cellSize = 0.21f;
+    private float liftHeight;
+    private float cellSize;
     private float diagonalStep;
 
-    private Vector3 whiteGraveyard = new Vector3(-0.5f, 0, -1f);
-    private Vector3 blackGraveyard = new Vector3(2f, 0, 0.5f);
+    private Vector3 whiteGraveyard;
+    private Vector3 blackGraveyard;
 
     private bool isWhiteTurn = true;
 
+    public GameObject desk;
+    public GameObject cell;
     public GameObject crownWhite;
     public GameObject crownBlack;
-
-    public GameObject highlightBluePrefab;
-    public GameObject highlightRedPrefab;
-    private List<GameObject> activeHighlights = new List<GameObject>();
 
     public AudioClip defoultMove;
     public AudioClip captureMove;
     private AudioSource audioSource;
     void Start()
     {
+        cellSize = cell.transform.localScale.x;
+        liftHeight = cellSize;
         diagonalStep = cellSize * Mathf.Sqrt(2);
+
         audioSource = gameObject.AddComponent<AudioSource>();
+
+        Vector3 globalSize = desk.GetComponent<Renderer>().bounds.size;
+        Vector3 deskPosition = desk.transform.position;
+        whiteGraveyard = new Vector3(deskPosition.x - globalSize.x/1.5f, 0, deskPosition.z - globalSize.z/3f );
+        blackGraveyard = new Vector3(deskPosition.x + globalSize.x/1.5f, 0, deskPosition.z + globalSize.z/3f);
     }
 
     void Update()
@@ -44,7 +52,7 @@ public class CheckersMove : MonoBehaviour
                     isWhiteTurn && hit.collider.CompareTag("WhiteCrown")||
                     !isWhiteTurn && hit.collider.CompareTag("BlackCrown"))
                 {
-                    ClearHighlights();
+                    MoveHighlighter.Instance.ClearHighlights();
                     SelectPawn(hit.collider.gameObject);
                     ShowHighlightsForSelectedPiece();
                 }
@@ -54,14 +62,6 @@ public class CheckersMove : MonoBehaviour
                 }
             }
         }
-    }
-    void ClearHighlights()
-    {
-        foreach (GameObject go in activeHighlights)
-        {
-            Destroy(go);
-        }
-        activeHighlights.Clear();
     }
 
     void SelectPawn(GameObject pawn)
@@ -75,281 +75,10 @@ public class CheckersMove : MonoBehaviour
         selectedPawn.transform.position += Vector3.up * liftHeight;
     }
 
-    void ShowHighlightsForSelectedPiece() // подсвет
+    void ShowHighlightsForSelectedPiece()
     {
-        if (selectedPawn == null) return;
-
-        if (selectedPawn.CompareTag("WhitePawn") || selectedPawn.CompareTag("BlackPawn"))
-        {
-            Vector3 currentPos = selectedPawn.transform.position;
-            Vector3 moveDir1, moveDir2;
-            if (selectedPawn.CompareTag("WhitePawn"))
-            {
-                moveDir1 = new Vector3(-cellSize, 0, -cellSize);
-                moveDir2 = new Vector3(cellSize, 0, -cellSize);
-            }
-            else
-            {
-                moveDir1 = new Vector3(-cellSize, 0, cellSize);
-                moveDir2 = new Vector3(cellSize, 0, cellSize);
-            }
-            CheckAndHighlightNormalMove(currentPos, moveDir1);
-            CheckAndHighlightNormalMove(currentPos, moveDir2);
-
-            CheckAndHighlightCaptureMove(currentPos, moveDir1);
-            CheckAndHighlightCaptureMove(currentPos, moveDir2);
-        }
-        else if (selectedPawn.CompareTag("WhiteCrown") || selectedPawn.CompareTag("BlackCrown"))
-        {
-            Vector3[] directions = new Vector3[4]
-            {
-                new Vector3(cellSize, 0, cellSize),
-                new Vector3(-cellSize, 0, cellSize),
-                new Vector3(cellSize, 0, -cellSize),
-                new Vector3(-cellSize, 0, -cellSize)
-            };
-            int maxSteps = 8;
-            foreach (Vector3 dir in directions)
-            {
-                CheckAndHighlightKingMoves(selectedPawn.transform.position, dir, maxSteps);
-            }
-        }
-    }
-    void CheckAndHighlightKingMoves(Vector3 startPos, Vector3 direction, int maxSteps)
-    {
-        Vector3 pos = startPos;
-        pos.y = 0;
-        bool enemyEncountered = false;
-
-        for (int i = 1; i <= maxSteps; i++)
-        {
-            pos += direction;
-
-            Collider[] boardColliders = Physics.OverlapSphere(pos, 0.1f);
-            bool onBoard = false;
-            foreach (Collider col in boardColliders)
-            {
-                if (col.CompareTag("MoveSpot"))
-                {
-                    onBoard = true;
-                    break;
-                }
-            }
-            if (!onBoard)
-            {
-
-                break;
-            }
-
-            Collider[] colliders = Physics.OverlapSphere(pos, 0.1f);
-            List<Collider> pieces = new List<Collider>();
-            foreach (Collider col in colliders)
-            {
-                if (!col.CompareTag("MoveSpot"))
-                    pieces.Add(col);
-            }
-
-            if (pieces.Count == 0)
-            {
-                Vector3 highlightPos = new Vector3(pos.x, 0f, pos.z);
-                Quaternion highlightRot = Quaternion.Euler(90, 0, 0);
-                GameObject highlight = Instantiate(highlightBluePrefab, highlightPos, highlightRot);
-                activeHighlights.Add(highlight);
-            }
-            else
-            {
-                bool foundEnemy = false;
-                bool foundAlly = false;
-                foreach (Collider col in pieces)
-                {
-                    if (selectedPawn.CompareTag("WhiteCrown"))
-                    {
-                        if (col.CompareTag("BlackPawn") || col.CompareTag("BlackCrown"))
-                            foundEnemy = true;
-                        else if (col.CompareTag("WhitePawn") || col.CompareTag("WhiteCrown"))
-                            foundAlly = true;
-                    }
-                    else if (selectedPawn.CompareTag("BlackCrown"))
-                    {
-                        if (col.CompareTag("WhitePawn") || col.CompareTag("WhiteCrown"))
-                            foundEnemy = true;
-                        else if (col.CompareTag("BlackPawn") || col.CompareTag("BlackCrown"))
-                            foundAlly = true;
-                    }
-                }
-
-                if (foundAlly)
-                {
-                    break;
-                }
-                if (foundEnemy)
-                {
-                    if (!enemyEncountered)
-                    {
-                        Vector3 nextPos = pos + direction;
-                        Collider[] nextBoard = Physics.OverlapSphere(nextPos, 0.1f);
-                        bool nextOnBoard = false;
-                        foreach (Collider col in nextBoard)
-                        {
-                            if (col.CompareTag("MoveSpot"))
-                            {
-                                nextOnBoard = true;
-                                break;
-                            }
-                        }
-                        if (!nextOnBoard)
-                        {
-                            break;
-                        }
-
-                        Collider[] nextColliders = Physics.OverlapSphere(nextPos, 0.1f);
-                        bool nextFree = true;
-                        foreach (Collider col in nextColliders)
-                        {
-                            if (!col.CompareTag("MoveSpot"))
-                            {
-                                nextFree = false;
-                                break;
-                            }
-                        }
-                        if (!nextFree)
-                        {
-                            break;
-                        }
-
-                        enemyEncountered = true;
-                        Vector3 enemyHighlightPos = new Vector3(pos.x, 0f, pos.z);
-                        Quaternion highlightRot = Quaternion.Euler(90, 0, 0);
-                        GameObject enemyHighlight = Instantiate(highlightRedPrefab, enemyHighlightPos, highlightRot);
-                        activeHighlights.Add(enemyHighlight);
-
-                        Vector3 landingHighlightPos = new Vector3(nextPos.x, 0f, nextPos.z);
-                        GameObject landingHighlight = Instantiate(highlightBluePrefab, landingHighlightPos, highlightRot);
-                        activeHighlights.Add(landingHighlight);
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    void CheckAndHighlightNormalMove(Vector3 startPos, Vector3 offset)
-    {
-        Vector3 pos = startPos + offset;
-        pos.y = 0;
-
-        Collider[] moveSpotColliders = Physics.OverlapSphere(pos, 0.1f);
-        bool hasMoveSpot = false;
-        foreach (Collider col in moveSpotColliders)
-        {
-            if (col.CompareTag("MoveSpot"))
-            {
-                hasMoveSpot = true;
-                break;
-            }
-        }
-        if (!hasMoveSpot)
-            return;
-
-        Collider[] colliders = Physics.OverlapSphere(pos, 0.1f);
-        bool cellEmpty = true;
-        foreach (Collider col in colliders)
-        {
-            if (col.CompareTag("WhitePawn") || col.CompareTag("BlackPawn") ||
-                col.CompareTag("WhiteCrown") || col.CompareTag("BlackCrown"))
-            {
-                cellEmpty = false;
-                break;
-            }
-        }
-        if (cellEmpty)
-        {
-            Vector3 highlightPos = new Vector3(pos.x, 0, pos.z);
-            Quaternion highlightRot = Quaternion.Euler(90, 0, 0);
-            GameObject highlight = Instantiate(highlightBluePrefab, highlightPos, highlightRot);
-            activeHighlights.Add(highlight);
-        }
-    }
-    void CheckAndHighlightCaptureMove(Vector3 startPos, Vector3 offset)
-    {
-        Vector3 enemyPos = startPos + offset;
-        Vector3 landingPos = startPos + 2 * offset;
-        enemyPos.y = 0;
-        landingPos.y = 0;
-
-        Collider[] moveSpotEnemy = Physics.OverlapSphere(enemyPos, 0.1f);
-        bool enemyPosHasMoveSpot = false;
-        foreach (Collider col in moveSpotEnemy)
-        {
-            if (col.CompareTag("MoveSpot"))
-            {
-                enemyPosHasMoveSpot = true;
-                break;
-            }
-        }
-        if (!enemyPosHasMoveSpot)
-            return;
-        Collider[] collidersEnemy = Physics.OverlapSphere(enemyPos, 0.1f);
-        GameObject enemyFound = null;
-        foreach (Collider col in collidersEnemy)
-        {
-            if (selectedPawn.CompareTag("WhitePawn"))
-            {
-                if (col.CompareTag("BlackPawn") || col.CompareTag("BlackCrown"))
-                {
-                    enemyFound = col.gameObject;
-                    break;
-                }
-            }
-            else if (selectedPawn.CompareTag("BlackPawn"))
-            {
-                if (col.CompareTag("WhitePawn") || col.CompareTag("WhiteCrown"))
-                {
-                    enemyFound = col.gameObject;
-                    break;
-                }
-            }
-        }
-        if (enemyFound == null)
-            return;
-
-        Collider[] moveSpotLanding = Physics.OverlapSphere(landingPos, 0.1f);
-        bool landingHasMoveSpot = false;
-        foreach (Collider col in moveSpotLanding)
-        {
-            if (col.CompareTag("MoveSpot"))
-            {
-                landingHasMoveSpot = true;
-                break;
-            }
-        }
-        if (!landingHasMoveSpot)
-            return;
-
-        Collider[] collidersLanding = Physics.OverlapSphere(landingPos, 0.1f);
-        bool landingEmpty = true;
-        foreach (Collider col in collidersLanding)
-        {
-            if (col.CompareTag("WhitePawn") || col.CompareTag("BlackPawn") ||
-                col.CompareTag("WhiteCrown") || col.CompareTag("BlackCrown"))
-            {
-                landingEmpty = false;
-                break;
-            }
-        }
-        if (landingEmpty)
-        {
-            Vector3 enemyHighlightPos = new Vector3(enemyPos.x, 0f, enemyPos.z);
-            Quaternion highlightRot = Quaternion.Euler(90, 0, 0);
-            GameObject enemyHighlight = Instantiate(highlightRedPrefab, enemyHighlightPos, highlightRot);
-            activeHighlights.Add(enemyHighlight);
-
-            Vector3 landingHighlightPos = new Vector3(landingPos.x, 0f, landingPos.z);
-            GameObject landingHighlight = Instantiate(highlightBluePrefab, landingHighlightPos, highlightRot);
-            activeHighlights.Add(landingHighlight);
-        }
+        MoveHighlighter.Instance.ClearHighlights();
+        MoveHighlighter.Instance.ShowHighlights(selectedPawn, cellSize);
     }
     void TryMoveOrCapture(GameObject target)
     {
@@ -366,7 +95,7 @@ public class CheckersMove : MonoBehaviour
                     MovePawn(target.transform.position);
                     EndTurn();
                     PlaySound(defoultMove, 0.5f);
-                    ClearHighlights();
+                    MoveHighlighter.Instance.ClearHighlights();
                 }
             }
             else if (Mathf.Abs(moveDirection.magnitude - (2 * diagonalStep)) < 0.1f)
@@ -375,7 +104,7 @@ public class CheckersMove : MonoBehaviour
                 {
                     CaptureEnemy(enemyPawn, target.transform.position);
                     EndTurn();
-                    ClearHighlights();
+                    MoveHighlighter.Instance.ClearHighlights();
                 }
             }
         }
@@ -452,7 +181,7 @@ public class CheckersMove : MonoBehaviour
         }
 
         MovePawn(targetPos);
-        ClearHighlights();
+        MoveHighlighter.Instance.ClearHighlights();
         EndTurn();
     }
     void MovePawn(Vector3 targetPosition)
@@ -468,10 +197,8 @@ public class CheckersMove : MonoBehaviour
     {
         enemyPawn = null;
 
-        // Находим среднюю точку между шашками
         Vector3 middlePosition = selectedPawn.transform.position + moveDirection / 2;
 
-        // Ищем шашку в этой позиции
         Collider[] colliders = Physics.OverlapSphere(middlePosition, 0.15f);
 
         foreach (Collider col in colliders)
@@ -485,7 +212,6 @@ public class CheckersMove : MonoBehaviour
 
                 middlePosition.y = enemyPawn.transform.position.y;
 
-                // Проверяем, совпадают ли глобальные координаты
                 if (Vector3.Distance(middlePosition, enemyPawn.transform.position) < 0.1f)
                 {
                     return true;
@@ -497,18 +223,17 @@ public class CheckersMove : MonoBehaviour
 
     void CaptureEnemy(GameObject enemyPawn, Vector3 newPosition)
     {
-
         if (enemyPawn.CompareTag("WhitePawn")|| enemyPawn.CompareTag("WhiteCrown"))
         {
             enemyPawn.transform.position = whiteGraveyard;
             enemyPawn.transform.rotation = Quaternion.Euler(0, 90, 90);
-            whiteGraveyard.z += 0.1f;
+            whiteGraveyard.z += cellSize / 2f;
         }
         else if (enemyPawn.CompareTag("BlackPawn")|| enemyPawn.CompareTag("BlackCrown"))
         {
             enemyPawn.transform.position = blackGraveyard;
             enemyPawn.transform.rotation = Quaternion.Euler(0, 90, -90);
-            blackGraveyard.z -= 0.1f;
+            blackGraveyard.z -= cellSize / 2f;
         }
         PlaySound(captureMove, 0.3f);
         MovePawn(newPosition);
@@ -524,19 +249,40 @@ public class CheckersMove : MonoBehaviour
     {
         bool isWhite = selectedPawn.CompareTag("WhitePawn");
         bool isBlack = selectedPawn.CompareTag("BlackPawn");
-        Vector3 pawnPos = selectedPawn.transform.position;
 
-        if (isWhite && pawnPos.z <= -1.05f)
+        if (!isWhite && !isBlack) return;
+
+        Vector3 pawnPos = selectedPawn.transform.position;
+        pawnPos.y = 0;
+        Vector3[] diagonalDirections =
         {
-            Destroy(selectedPawn);
-            GameObject newKing = Instantiate(crownWhite, pawnPos, Quaternion.Euler(0, 0, 0));
-            newKing.tag = "WhiteCrown";
+        new Vector3(-cellSize, 0, -cellSize),
+        new Vector3(cellSize, 0, -cellSize),
+        };
+
+        if (isBlack)
+        {
+            diagonalDirections[0] *= -1;
+            diagonalDirections[1] *= -1;
         }
-        else if (isBlack && pawnPos.z >= 0.42f)
+
+        bool hasMoveSpots = false;
+
+        foreach (Vector3 direction in diagonalDirections)
+        {
+            Vector3 checkPos = pawnPos + direction;
+            if (MoveHighlighter.Instance.IsExistMoveSpot(checkPos))
+            {
+                hasMoveSpots = true;
+                break;
+            }
+        }
+
+        if (!hasMoveSpots)
         {
             Destroy(selectedPawn);
-            GameObject newKing = Instantiate(crownBlack, pawnPos, Quaternion.Euler(0, 0, 0));
-            newKing.tag = "BlackCrown";
+            GameObject newKing = Instantiate(isWhite ? crownWhite : crownBlack, pawnPos, Quaternion.identity);
+            newKing.tag = isWhite ? "WhiteCrown" : "BlackCrown";
         }
     }
     void PlaySound(AudioClip clip, float volume)

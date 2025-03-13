@@ -4799,6 +4799,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3459516838085523188, guid: 6e1def951be67e249b7a6608f69d9987, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4278025890327497788}
+    - targetCorrespondingSourceObject: {fileID: 3459516838085523188, guid: 6e1def951be67e249b7a6608f69d9987, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4278025890327497789}
   m_SourcePrefab: {fileID: 100100000, guid: 6e1def951be67e249b7a6608f69d9987, type: 3}
 --- !u!4 &4278025890327497787 stripped
 Transform:
@@ -4817,12 +4820,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 014e5aac19d52cc48a5bc8c3a96b434b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  desk: {fileID: 475895875}
+  cell: {fileID: 295020784656873159, guid: fb7cc34f44ae83b438840f7f50bcd8d9, type: 3}
   crownWhite: {fileID: 5663614565976150507, guid: 7343cf0040e503944a02de91d5bc302f, type: 3}
   crownBlack: {fileID: 7605656741305030341, guid: cedfa45d87668904b88e689a6b897cae, type: 3}
-  highlightBluePrefab: {fileID: 933988036306033865, guid: 6dbfda8ba1441fb408da733698adc54e, type: 3}
-  highlightRedPrefab: {fileID: 7868911442758298806, guid: 05db4d79315a5734a9e9810c490faa93, type: 3}
   defoultMove: {fileID: 8300000, guid: 6e372e6eb8c9d544c85e7bc3f5dcd3f3, type: 3}
   captureMove: {fileID: 8300000, guid: 33bcd483c1c8cc540840386685e13011, type: 3}
+--- !u!114 &4278025890327497789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 475895875}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e8653c304507d34985e017099bd446a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  highlightBluePrefab: {fileID: 933988036306033865, guid: 6dbfda8ba1441fb408da733698adc54e, type: 3}
+  highlightRedPrefab: {fileID: 7868911442758298806, guid: 05db4d79315a5734a9e9810c490faa93, type: 3}
 --- !u!1001 &4425866956167820136
 PrefabInstance:
   m_ObjectHideFlags: 0

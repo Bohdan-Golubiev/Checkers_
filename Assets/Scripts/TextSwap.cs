@@ -3,9 +3,9 @@ using TMPro;
 
 public class TextSwap : MonoBehaviour
 {
-    public static TextSwap Instance;  // Глобальная ссылка
-    public TextMeshProUGUI turnText;     // Ссылка на текст хода
-    private bool isWhiteTurn = true;     // Очередность ходов
+    public static TextSwap Instance;
+    public TextMeshProUGUI turnText; 
+    private bool isWhiteTurn = true; 
 
     private void Awake()
     {
@@ -17,7 +17,7 @@ public class TextSwap : MonoBehaviour
 
     public void EndTurn()
     {
-        isWhiteTurn = !isWhiteTurn; // Меняем ход
+        isWhiteTurn = !isWhiteTurn;
         UpdateTurnText();
     }
 
